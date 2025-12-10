@@ -1,50 +1,57 @@
-# Welcome to your Expo app 👋
+# EcomeCustomer - React Native App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## 📱 Giới Thiệu
 
-## Get started
+Ứng dụng mua sắm trực tuyến được xây dựng bằng React Native và Expo.
 
-1. Install dependencies
+## 🚀 Đã Chuyển Đổi Sang React Native
 
-   ```bash
-   npm install
-   ```
+### ✅ Hoàn Thành
+1. **App.tsx** - Main app component với SafeAreaView, ScrollView
+2. **EnhancedHeader** - Header với Ionicons
+3. **BottomNav** - Bottom navigation với Ionicons  
+4. **Banner** - Image carousel với ScrollView
+5. **ProductCard** - Template component (file .new)
+6. **Context API** - CartContext và AppContext
+7. **Cấu trúc thư mục** - Feature-based architecture
 
-2. Start the app
+### 🔄 Cần Hoàn Thiện
 
-   ```bash
-   npx expo start
-   ```
+Các components còn lại cần chuyển sang React Native - Xem [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## 🛠️ Cài Đặt & Chạy
 
 ```bash
-npm run reset-project
+# Cài đặt dependencies
+npm install
+
+# Chạy trên Android
+npm run android
+
+# Chạy trên iOS
+npm run ios
+
+# Start Expo Dev Server
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 📁 Cấu Trúc
 
-## Learn more
+```
+src/
+├── features/          # Feature modules (home, product, cart, etc)
+├── shared/           # Shared components, contexts, types
+└── core/             # Data, services, config
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📖 Tài Liệu
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) - Hướng dẫn chuyển đổi chi tiết
+- [STRUCTURE.md](./STRUCTURE.md) - Cấu trúc thư mục
 
-## Join the community
+## 🎨 Template Components
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Tham khảo các components đã chuyển đổi:
+- `src/shared/components/layout/EnhancedHeader.tsx`
+- `src/shared/components/layout/BottomNav.tsx`
+- `src/features/home/components/Banner.tsx`

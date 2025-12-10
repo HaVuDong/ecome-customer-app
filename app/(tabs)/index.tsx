@@ -1,98 +1,214 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable import/no-duplicates */
+import React from 'react';
+import { View, ScrollView, StyleSheet, Text, StatusBar, SafeAreaView } from 'react-native';
+import { Product } from '@/src/shared/types';
+import { products, categories, banners, vouchers, flashSaleProducts, liveStreams } from '@/src/core/data/mockData';
+import { EnhancedHeader, BottomNav } from '@/src/shared/components/layout';
+import { Banner, FlashSale, VoucherSection, LiveSection, DailyCheckin } from '@/src/features/home';
+import { ProductGrid, ProductDetail } from '@/src/features/product';
+import { CategoryGrid, CategoriesView } from '@/src/features/category';
+import { SearchModal } from '@/src/features/search';
+import { CartView } from '@/src/features/cart';
+import { ProfileView } from '@/src/features/profile';
+import { AppProvider, useApp } from '@/src/shared/contexts';
+import { CartProvider, useCart } from '@/src/shared/contexts';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+function AppContent() {
+  const { 
+    activeTab, 
+    setActiveTab, 
+    selectedProduct, 
+    setSelectedProduct,
+    showSearch,
+    setShowSearch,
+    selectedCategory,
+    setSelectedCategory,
+    claimedVouchers,
+    claimVoucher
+  } = useApp();
+  
+  const {
+    cartItems,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    toggleItemSelection
+  } = useCart();
 
-export default function HomeScreen() {
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setActiveTab('categories');
+  };
+
+  const handleProductClick = (productOrId: Product | string) => {
+    const product = typeof productOrId === 'string' 
+      ? products.find(p => p.id === productOrId)
+      : productOrId;
+    
+    if (product) {
+      setSelectedProduct(product);
+    }
+  };
+
+  const handleToggleSelectAll = () => {
+    const allSelected = cartItems.every((item) => item.selected);
+    cartItems.forEach((item) => {
+      if (item.selected !== !allSelected) {
+        toggleItemSelection(item.product.id);
+      }
+    });
+  };
+
+  const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const allSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
+
+  const updatedVouchers = vouchers.map(v => ({
+    ...v,
+    claimed: claimedVouchers.includes(v.id) || v.claimed
+  }));
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#f97316" />
+      <View style={styles.content}>
+        {activeTab === 'home' && (
+          <>
+            <EnhancedHeader
+              cartCount={totalCartCount}
+              notificationCount={3}
+              onSearchClick={() => setShowSearch(true)}
+              onCartClick={() => setActiveTab('cart')}
+              onQRClick={() => {}}
             />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+              <Banner banners={banners} />
+              <CategoryGrid
+                categories={categories}
+                onCategoryClick={handleCategoryClick}
               />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+              <FlashSale 
+                flashSaleProducts={flashSaleProducts}
+                onProductClick={handleProductClick}
+              />
+              <VoucherSection 
+                vouchers={updatedVouchers}
+                onClaimVoucher={claimVoucher}
+              />
+              <LiveSection liveStreams={liveStreams} />
+              <DailyCheckin />
+              <ProductGrid
+                products={products}
+                onProductClick={handleProductClick}
+                title="GỢI Ý HÔM NAY"
+              />
+            </ScrollView>
+          </>
+        )}
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {activeTab === 'categories' && (
+          <>
+            <EnhancedHeader
+              cartCount={totalCartCount}
+              notificationCount={3}
+              onSearchClick={() => setShowSearch(true)}
+              onCartClick={() => setActiveTab('cart')}
+              onQRClick={() => {}}
+            />
+            <CategoriesView
+              categories={categories}
+              products={products}
+              onProductClick={handleProductClick}
+            />
+          </>
+        )}
+
+        {activeTab === 'cart' && (
+          <>
+            <View style={styles.cartHeader}>
+              <Text style={styles.cartTitle}>Giỏ Hàng</Text>
+            </View>
+            <CartView
+              cartItems={cartItems}
+              onUpdateQuantity={updateQuantity}
+              onRemoveItem={removeItem}
+              onToggleSelect={toggleItemSelection}
+              onToggleSelectAll={handleToggleSelectAll}
+              allSelected={allSelected}
+            />
+          </>
+        )}
+
+        {activeTab === 'profile' && (
+          <ProfileView />
+        )}
+
+        {selectedProduct && (
+          <ProductDetail
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+            onAddToCart={addToCart}
+          />
+        )}
+
+        {showSearch && (
+          <SearchModal
+            products={products}
+            onClose={() => setShowSearch(false)}
+            onProductClick={handleProductClick}
+          />
+        )}
+
+        {/* Bottom Navigation */}
+        <BottomNav
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          cartCount={totalCartCount}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </AppProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  content: {
+    flex: 1,
+    position: 'relative',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 80,
+  },
+  cartHeader: {
+    backgroundColor: '#f97316',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cartTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

@@ -3,8 +3,20 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorScheme } from './use-color-scheme';
+
+const Colors = {
+  light: {
+    tint: '#F97316',
+    background: '#fff',
+    text: '#000',
+  },
+  dark: {
+    tint: '#F97316',
+    background: '#000',
+    text: '#fff',
+  },
+};
 
 export function useThemeColor(
   props: { light?: string; dark?: string },

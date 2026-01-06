@@ -10,14 +10,20 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 interface Product {
-  id: string;
+  id: number;
   name: string;
   price: number;
-  image: string;
+  mainImage?: string;
+  image?: string;
   stock: number;
+  seller?: {
+    id: number;
+    fullName: string;
+  };
 }
 
 interface CartItem {
+  id: number; // Cart item ID
   product: Product;
   quantity: number;
   selected: boolean;
@@ -25,9 +31,9 @@ interface CartItem {
 
 interface CartViewProps {
   cartItems: CartItem[];
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
-  onToggleSelect: (productId: string) => void;
+  onUpdateQuantity: (itemId: number, quantity: number) => void;
+  onRemoveItem: (itemId: number) => void;
+  onToggleSelect: (itemId: number) => void;
   onToggleSelectAll: () => void;
   allSelected: boolean;
 }
@@ -91,12 +97,12 @@ export function CartView({
         showsVerticalScrollIndicator={false}
       >
         {cartItems.map((item) => (
-          <View key={item.product.id} style={styles.cartItem}>
+          <View key={item.id} style={styles.cartItem}>
             <View style={styles.itemContent}>
               {/* Checkbox */}
               <TouchableOpacity 
                 style={styles.itemCheckboxContainer}
-                onPress={() => onToggleSelect(item.product.id)}
+                onPress={() => onToggleSelect(item.id)}
               >
                 <View style={[styles.checkbox, item.selected && styles.checkboxChecked]}>
                   {item.selected && <Ionicons name="checkmark" size={16} color="#fff" />}
@@ -105,7 +111,7 @@ export function CartView({
 
               {/* Product Image */}
               <Image
-                source={{ uri: item.product.image }}
+                source={{ uri: item.product.mainImage || item.product.image || 'https://via.placeholder.com/80' }}
                 style={styles.productImage}
               />
 
@@ -128,7 +134,7 @@ export function CartView({
                         item.quantity <= 1 && styles.quantityButtonDisabled
                       ]}
                       onPress={() =>
-                        onUpdateQuantity(item.product.id, item.quantity - 1)
+                        onUpdateQuantity(item.id, item.quantity - 1)
                       }
                       disabled={item.quantity <= 1}
                     >
@@ -145,7 +151,7 @@ export function CartView({
                         item.quantity >= item.product.stock && styles.quantityButtonDisabled
                       ]}
                       onPress={() =>
-                        onUpdateQuantity(item.product.id, item.quantity + 1)
+                        onUpdateQuantity(item.id, item.quantity + 1)
                       }
                       disabled={item.quantity >= item.product.stock}
                     >
@@ -160,7 +166,7 @@ export function CartView({
                   {/* Delete Button */}
                   <TouchableOpacity
                     style={styles.deleteButton}
-                    onPress={() => onRemoveItem(item.product.id)}
+                    onPress={() => onRemoveItem(item.id)}
                   >
                     <Ionicons name="trash-outline" size={20} color="#9CA3AF" />
                   </TouchableOpacity>

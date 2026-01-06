@@ -51,3 +51,17 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+// App Colors - Shopee-style
+export const COLORS = {
+  primary: '#ee4d2d',      // Màu cam Shopee
+  secondary: '#ff6633',
+  background: '#f5f5f5',
+  white: '#ffffff',
+  black: '#000000',
+  gray: '#6b7280',
+  lightGray: '#e5e7eb',
+  success: '#22c55e',
+  error: '#ef4444',
+  warning: '#f59e0b',
+};

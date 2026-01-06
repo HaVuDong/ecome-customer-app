@@ -69,7 +69,11 @@ export function FlashSale({ flashSaleProducts, onProductClick }: FlashSaleProps)
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {flashSaleProducts.map((item) => {
-          const percentSold = (item.sold / item.stockLimit) * 100;
+          // Skip items with missing product data
+          if (!item?.product) {
+            return null;
+          }
+          const percentSold = item.stockLimit > 0 ? (item.sold / item.stockLimit) * 100 : 0;
           return (
             <TouchableOpacity
               key={item.product.id}
@@ -78,17 +82,19 @@ export function FlashSale({ flashSaleProducts, onProductClick }: FlashSaleProps)
               activeOpacity={0.7}
             >
               <View style={styles.imageContainer}>
-                <Image source={{ uri: item.product.image }} style={styles.productImage} resizeMode="cover" />
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountText}>-{item.product.discount}%</Text>
-                </View>
+                <Image source={{ uri: item.product.image || '' }} style={styles.productImage} resizeMode="cover" />
+                {item.product.discount && item.product.discount > 0 && (
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>-{item.product.discount}%</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.productInfo}>
-                <Text style={styles.price}>₫{item.flashPrice.toLocaleString()}</Text>
+                <Text style={styles.price}>₫{(item.flashPrice || 0).toLocaleString()}</Text>
                 <View style={styles.progressContainer}>
                   <View style={styles.progressBar}>
                     <View style={[styles.progressFill, { width: `${percentSold}%` }]} />
-                    <Text style={styles.progressText}>Đã bán {item.sold}</Text>
+                    <Text style={styles.progressText}>Đã bán {item.sold || 0}</Text>
                   </View>
                 </View>
               </View>

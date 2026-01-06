@@ -1,53 +1,136 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  ScrollView
+  ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../../shared/contexts/AuthContext';
+import orderService from '../../../core/services/orderService';
+import wishlistService from '../../../core/services/wishlistService';
+import reviewService from '../../../core/services/reviewService';
+
+interface ProfileViewProps {
+  onNavigateToOrders?: () => void;
+  onNavigateToWishlist?: () => void;
+  onNavigateToReviews?: () => void;
+  onNavigateToSettings?: () => void;
+}
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
   color: string;
+  onPress?: () => void;
 }
 
 interface SettingItem {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  onPress?: () => void;
 }
 
-export function ProfileView() {
+export function ProfileView({
+  onNavigateToOrders,
+  onNavigateToWishlist,
+  onNavigateToReviews,
+  onNavigateToSettings,
+}: ProfileViewProps) {
+  const { user, logout } = useAuth();
+  const [stats, setStats] = useState({
+    orderCount: 0,
+    wishlistCount: 0,
+    reviewCount: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUserStats();
+  }, []);
+
+  const loadUserStats = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Load stats in parallel
+      const [ordersRes, wishlistCountRes, reviewsRes] = await Promise.allSettled([
+        orderService.getMyOrders(0, 1),
+        wishlistService.countWishlist(),
+        reviewService.getMyReviews(0, 1),
+      ]);
+
+      setStats({
+        orderCount: ordersRes.status === 'fulfilled' ? (ordersRes.value.data?.totalElements || 0) : 0,
+        wishlistCount: wishlistCountRes.status === 'fulfilled' ? (wishlistCountRes.value.data?.count || 0) : 0,
+        reviewCount: reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data?.totalElements || 0) : 0,
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { 
+          text: 'Đăng xuất', 
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          }
+        },
+      ]
+    );
+  };
+
   const menuItems: MenuItem[] = [
     {
       icon: 'bag-handle-outline',
       label: 'Đơn mua',
-      value: '3 đơn hàng',
+      value: `${stats.orderCount} đơn hàng`,
       color: '#3B82F6',
+      onPress: onNavigateToOrders,
     },
     {
       icon: 'heart-outline',
-      label: 'Sản phẩm yêu thích',
-      value: '12 sản phẩm',
+      label: 'Yêu thích',
+      value: `${stats.wishlistCount} sản phẩm`,
       color: '#EF4444',
+      onPress: onNavigateToWishlist,
     },
     {
       icon: 'star-outline',
-      label: 'Đánh giá của tôi',
-      value: '8 đánh giá',
+      label: 'Đánh giá',
+      value: `${stats.reviewCount} đánh giá`,
       color: '#FBBF24',
+      onPress: onNavigateToReviews,
     },
   ];
 
   const settingItems: SettingItem[] = [
     { icon: 'location-outline', label: 'Địa chỉ nhận hàng' },
     { icon: 'card-outline', label: 'Thẻ thanh toán' },
-    { icon: 'settings-outline', label: 'Cài đặt tài khoản' },
+    { icon: 'settings-outline', label: 'Cài đặt tài khoản', onPress: onNavigateToSettings },
     { icon: 'help-circle-outline', label: 'Trung tâm hỗ trợ' },
   ];
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#F97316" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView 
@@ -62,8 +145,9 @@ export function ProfileView() {
             <Ionicons name="person" size={40} color="#F97316" />
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>Nguyễn Văn A</Text>
-            <Text style={styles.userBadge}>VIP Member</Text>
+            <Text style={styles.userName}>{user?.fullName || 'Khách hàng'}</Text>
+            <Text style={styles.userEmail}>{user?.email || ''}</Text>
+            <Text style={styles.userBadge}>Khách hàng</Text>
           </View>
         </View>
       </View>
@@ -76,6 +160,7 @@ export function ProfileView() {
               key={index}
               style={styles.statItem}
               activeOpacity={0.7}
+              onPress={item.onPress}
             >
               <View style={[styles.statIconContainer, { backgroundColor: item.color + '15' }]}>
                 <Ionicons name={item.icon} size={24} color={item.color} />
@@ -100,6 +185,7 @@ export function ProfileView() {
               index === settingItems.length - 1 && styles.settingItemLast
             ]}
             activeOpacity={0.7}
+            onPress={item.onPress}
           >
             <View style={styles.settingLeft}>
               <Ionicons name={item.icon} size={20} color="#6B7280" />
@@ -115,7 +201,9 @@ export function ProfileView() {
         <TouchableOpacity
           style={styles.logoutButton}
           activeOpacity={0.7}
+          onPress={handleLogout}
         >
+          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>
       </View>
@@ -127,6 +215,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     paddingBottom: 80,
@@ -158,10 +250,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
+  userEmail: {
+    fontSize: 13,
+    color: '#FED7AA',
+    marginTop: 2,
+  },
   userBadge: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#FED7AA',
     marginTop: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
   },
   statsCard: {
     backgroundColor: '#fff',
@@ -236,15 +338,18 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#F97316',
+    borderColor: '#EF4444',
     borderRadius: 8,
     paddingVertical: 12,
-    alignItems: 'center',
   },
   logoutText: {
     fontSize: 16,
-    color: '#F97316',
+    color: '#EF4444',
     fontWeight: '600',
   },
 });

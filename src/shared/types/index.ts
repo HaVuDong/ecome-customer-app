@@ -15,6 +15,12 @@ export interface Product {
   shop?: Shop;
   specifications?: Record<string, string>;
   reviews?: Review[];
+  seller?: {
+    id: number;
+    username?: string;
+    fullName?: string;
+    avatar?: string;
+  };
 }
 
 export interface Variation {

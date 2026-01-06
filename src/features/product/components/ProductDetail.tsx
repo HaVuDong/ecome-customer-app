@@ -1,27 +1,99 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Dimensions, StatusBar, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '../../../shared/types';
+import wishlistService from '../../../core/services/wishlistService';
+import recommendationService from '../../../core/services/recommendationService';
 
 interface ProductDetailProps {
   product: Product;
   onClose: () => void;
   onAddToCart: (product: Product, quantity: number) => void;
+  onChat?: (sellerId: number, sellerName: string, productInfo: {
+    productId: number;
+    productName: string;
+    productImage: string;
+    productPrice: number;
+  }) => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export function ProductDetail({ product, onClose, onAddToCart }: ProductDetailProps) {
+export function ProductDetail({ product, onClose, onAddToCart, onChat }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
 
+  // Check if product is in wishlist on mount
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      try {
+        const isInWishlist = await wishlistService.isInWishlist(parseInt(product.id));
+        setIsFavorite(isInWishlist);
+      } catch (error) {
+        console.error('Error checking wishlist status:', error);
+      }
+    };
+    
+    const trackProductView = async () => {
+      try {
+        await recommendationService.trackBehavior('VIEW', {
+          productId: parseInt(product.id),
+          deviceType: 'mobile'
+        });
+      } catch (error) {
+        // Silent fail - tracking không nên ảnh hưởng UX
+        console.log('Track view failed:', error);
+      }
+    };
+    
+    checkWishlistStatus();
+    trackProductView();
+  }, [product.id]);
+
+  
+  // Toggle wishlist via API
+  const handleToggleWishlist = async () => {
+    try {
+      const productIdNum = parseInt(product.id);
+      const response = await wishlistService.toggleWishlist(productIdNum);
+      if (response.success && response.data) {
+        setIsFavorite(response.data.isInWishlist);
+        
+        // Track WISHLIST behavior for AI
+        if (response.data.isInWishlist) {
+          await recommendationService.trackBehavior('WISHLIST', {
+            productId: productIdNum,
+            deviceType: 'mobile'
+          }).catch(() => {}); // Silent fail
+        }
+        
+        Alert.alert(
+          'Thành công',
+          response.data.isInWishlist ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích'
+        );
+      }
+    } catch {
+      Alert.alert('Lỗi', 'Không thể cập nhật danh sách yêu thích');
+    }
+  };
+
   const formatPrice = (price: number) => {
     return `₫${price.toLocaleString()}`;
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    // Track ADD_TO_CART behavior for AI
+    try {
+      await recommendationService.trackBehavior('ADD_TO_CART', {
+        productId: parseInt(product.id),
+        deviceType: 'mobile'
+      });
+    } catch {
+      // Silent fail
+    }
+    
     onAddToCart(product, quantity);
     onClose();
   };
@@ -67,7 +139,7 @@ export function ProductDetail({ product, onClose, onAddToCart }: ProductDetailPr
               <Ionicons name="close" size={24} color="#ffffff" />
             </TouchableOpacity>
             
-            <TouchableOpacity onPress={() => setIsFavorite(!isFavorite)} style={styles.favoriteButton}>
+            <TouchableOpacity onPress={handleToggleWishlist} style={styles.favoriteButton}>
               <Ionicons 
                 name={isFavorite ? "heart" : "heart-outline"} 
                 size={24} 
@@ -282,7 +354,24 @@ export function ProductDetail({ product, onClose, onAddToCart }: ProductDetailPr
         {/* Bottom Action Bar */}
         <View style={styles.bottomBar}>
           <View style={styles.bottomBarRow}>
-            <TouchableOpacity style={styles.chatButton}>
+            <TouchableOpacity 
+              style={styles.chatButton}
+              onPress={() => {
+                if (onChat && product.seller) {
+                  onChat(
+                    product.seller.id,
+                    product.seller.fullName || product.seller.username || 'Shop',
+                    {
+                      productId: parseInt(product.id),
+                      productName: product.name,
+                      productImage: product.images?.[0] || '',
+                      productPrice: product.price,
+                    }
+                  );
+                  onClose();
+                }
+              }}
+            >
               <Ionicons name="chatbubble-outline" size={20} color="#f97316" />
               <Text style={styles.chatButtonText}>Chat</Text>
             </TouchableOpacity>

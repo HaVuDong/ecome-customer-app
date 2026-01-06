@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCard } from '../../product/components/ProductCard';
+import recommendationService from '../../../core/services/recommendationService';
 
 interface Product {
   id: string;
@@ -40,6 +41,28 @@ const { width } = Dimensions.get('window');
 
 export function SearchModal({ products, onClose, onProductClick }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Track search when user types
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      const timer = setTimeout(() => {
+        trackSearch(searchQuery);
+      }, 1000); // Debounce 1 second
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
+  
+  const trackSearch = async (query: string) => {
+    try {
+      await recommendationService.trackBehavior('SEARCH', {
+        searchQuery: query,
+        deviceType: 'mobile'
+      });
+    } catch (error) {
+      console.log('Track search failed:', error);
+    }
+  };
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -111,8 +134,8 @@ export function SearchModal({ products, onClose, onProductClick }: SearchModalPr
               <View style={styles.resultsSection}>
                 {filteredProducts.length > 0 ? (
                   <View style={styles.productGrid}>
-                    {filteredProducts.map((product) => (
-                      <View key={product.id} style={styles.productCardWrapper}>
+                    {filteredProducts.map((product, index) => (
+                      <View key={`search-${product.id}-${index}`} style={styles.productCardWrapper}>
                         <ProductCard
                           product={product}
                           onPress={() => {

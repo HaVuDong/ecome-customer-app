@@ -91,8 +91,8 @@ export function CategoriesView({
           {/* Product Grid */}
           {filteredProducts.length > 0 ? (
             <View style={styles.productGrid}>
-              {filteredProducts.map((product) => (
-                <View key={product.id} style={styles.productCardWrapper}>
+              {filteredProducts.map((product, index) => (
+                <View key={`${product.id}-${index}`} style={styles.productCardWrapper}>
                   <ProductCard
                     product={product}
                     onPress={() => onProductClick(product)}

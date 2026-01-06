@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomNavProps {
   activeTab: string;
@@ -9,6 +10,10 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ activeTab, onTabChange, cartCount }: BottomNavProps) {
+  const insets = useSafeAreaInsets();
+  // Tự động điều chỉnh padding dựa trên safe area của điện thoại
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
+  
   const tabs = [
     { id: 'home', label: 'Trang Chủ', icon: 'home-outline', activeIcon: 'home' },
     { id: 'categories', label: 'Danh Mục', icon: 'grid-outline', activeIcon: 'grid' },
@@ -17,7 +22,7 @@ export function BottomNav({ activeTab, onTabChange, cartCount }: BottomNavProps)
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.tabsContainer}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -32,7 +37,7 @@ export function BottomNav({ activeTab, onTabChange, cartCount }: BottomNavProps)
               <View style={styles.iconContainer}>
                 <Ionicons 
                   name={iconName as any} 
-                  size={16} 
+                  size={20} 
                   color={isActive ? '#f97316' : '#9ca3af'} 
                 />
                 {tab.id === 'cart' && cartCount > 0 && (
@@ -64,7 +69,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 50,
+    // paddingBottom được set động từ useSafeAreaInsets
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
@@ -84,13 +89,13 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'relative',
-    width: 15,
-    height: 15,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
     marginTop: 4,
     color: '#9ca3af',
     fontWeight: '500',

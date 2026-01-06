@@ -19,12 +19,12 @@ export function ProductGrid({ products, onProductClick, title }: ProductGridProp
       )}
       <FlatList
         data={products}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <View style={styles.itemWrapper}>
             <ProductCard product={item} onPress={onProductClick} />
           </View>
         )}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         numColumns={2}
         columnWrapperStyle={styles.row}
         scrollEnabled={false}

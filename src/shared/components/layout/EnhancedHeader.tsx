@@ -8,6 +8,7 @@ interface EnhancedHeaderProps {
   onSearchClick: () => void;
   onCartClick: () => void;
   onQRClick: () => void;
+  onAiClick?: () => void;
 }
 
 export function EnhancedHeader({
@@ -45,7 +46,7 @@ export function EnhancedHeader({
             )}
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity onPress={onAiClick} style={styles.iconButton}>
             <Ionicons name="chatbubble-outline" size={22} color="#ffffff" />
           </TouchableOpacity>
         </View>

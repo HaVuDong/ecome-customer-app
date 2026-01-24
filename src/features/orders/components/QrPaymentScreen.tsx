@@ -67,7 +67,7 @@ const QrPaymentScreen: React.FC<QrPaymentScreenProps> = ({
   // States
   const [loading, setLoading] = useState(true);
   const [qrData, setQrData] = useState<QrPaymentResponse | null>(null);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 phút = 300 giây
+  const [timeLeft, setTimeLeft] = useState(120); // 2 phút = 120 giây (mặc định)
   const [error, setError] = useState<string | null>(null);
   const [qrLoaded, setQrLoaded] = useState(false);
   
@@ -88,11 +88,11 @@ const QrPaymentScreen: React.FC<QrPaymentScreenProps> = ({
       console.log('✅ QR data:', data);
       setQrData(data);
       
-      // Tính thời gian còn lại
-      const expiredAt = new Date(data.expiredAt);
-      const now = new Date();
-      const diffSeconds = Math.max(0, Math.floor((expiredAt.getTime() - now.getTime()) / 1000));
-      setTimeLeft(diffSeconds);
+      // Sử dụng expiryMinutes từ backend thay vì tính từ expiredAt
+      // Để tránh lỗi múi giờ hoặc client time không đồng bộ
+      const expirySeconds = (data.expiryMinutes || 2) * 60;
+      setTimeLeft(expirySeconds);
+      console.log('⏱️ Set countdown:', expirySeconds, 'seconds');
       
     } catch (err: any) {
       console.error('❌ Error generating QR:', err);

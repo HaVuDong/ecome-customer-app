@@ -1,34 +1,47 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-import { LOCAL_IP, logNetworkConfig } from '../config/network';
+import { getApiUrl, logNetworkConfig } from '../config/network';
 
 /**
  * API Configuration
  * 
- * 🔴 ĐỔI MẠNG WIFI? → Sửa IP trong file: src/core/config/network.ts
+ * 🟢 Sử dụng cấu hình từ src/core/config/network.ts
+ * Đổi USE_PRODUCTION = true/false để chuyển giữa Render và Local
  */
 
-const getApiBaseUrl = () => {
-  if (Platform.OS === 'web') {
-    return 'http://localhost:8080/api';
-  }
-  // Android/iOS thiết bị thật: dùng IP từ config
-  return `http://${LOCAL_IP}:8080/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = getApiUrl();
 
 // Log config khi khởi động
 logNetworkConfig();
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 60s cho Render free tier cold start
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Attempt to prefer Render (production). If FORCE_PRODUCTION is enabled, use production and do not fallback.
+(async function preferRenderThenLocal() {
+  try {
+    const network = await import('../config/network');
+    if (network.FORCE_PRODUCTION) {
+      const prod = `${network.PRODUCTION_URL}/api`;
+      console.log('⚡ NETWORK: FORCE_PRODUCTION enabled, using', prod);
+      apiClient.defaults.baseURL = prod;
+      return;
+    }
+    const resolved = await network.resolveApiUrl(3000);
+    if (!resolved) return;
+    if (apiClient.defaults.baseURL !== resolved) {
+      console.log('⚡ NETWORK: Switching API baseURL to', resolved);
+      apiClient.defaults.baseURL = resolved;
+    }
+  } catch (err) {
+    console.warn('⚠️ NETWORK: Failed to resolve production API, keep configured baseURL', apiClient.defaults.baseURL);
+  }
+})();
 
 // Request interceptor - Thêm token vào mọi request
 apiClient.interceptors.request.use(

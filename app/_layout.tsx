@@ -7,7 +7,8 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '../src/shared/contexts/AuthContext';
-import { LoginScreen, RegisterScreen } from '../src/features/auth';
+import { CartProvider } from '../src/shared/contexts/CartContext';
+import { LoginScreen, RegisterScreen, ForgotPasswordScreen } from '../src/features/auth';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -17,7 +18,8 @@ export const unstable_settings = {
 function RootNavigator() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
-
+  const [showForgot, setShowForgot] = useState(false);
+  
   console.log('🔐 RootNavigator - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', user?.email);
 
   // Hiển thị loading khi đang kiểm tra auth
@@ -35,7 +37,10 @@ function RootNavigator() {
     if (showRegister) {
       return <RegisterScreen onNavigateToLogin={() => setShowRegister(false)} />;
     }
-    return <LoginScreen onNavigateToRegister={() => setShowRegister(true)} />;
+    if (showForgot) {
+      return <ForgotPasswordScreen onBack={() => setShowForgot(false)} />;
+    }
+    return <LoginScreen onNavigateToRegister={() => setShowRegister(true)} onNavigateToForgot={() => setShowForgot(true)} />;
   }
 
   // Đã đăng nhập - hiển thị app chính
@@ -53,10 +58,12 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <RootNavigator />
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <CartProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </CartProvider>
     </AuthProvider>
   );
 }

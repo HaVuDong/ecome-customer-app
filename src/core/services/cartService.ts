@@ -33,11 +33,13 @@ export interface CartGroupedResponse {
 }
 
 export interface CheckoutRequest {
+  cartItemIds: number[];
   shippingName: string;
   shippingPhone: string;
   shippingAddress: string;
   paymentMethod: string;
   note?: string;
+  voucherCode?: string;
 }
 
 export interface ApiResponse<T> {

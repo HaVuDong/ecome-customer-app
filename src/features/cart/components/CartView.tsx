@@ -36,6 +36,7 @@ interface CartViewProps {
   onToggleSelect: (itemId: number) => void;
   onToggleSelectAll: () => void;
   allSelected: boolean;
+  onCheckout?: () => void;
 }
 
 export function CartView({
@@ -45,6 +46,7 @@ export function CartView({
   onToggleSelect,
   onToggleSelectAll,
   allSelected,
+  onCheckout,
 }: CartViewProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -207,6 +209,7 @@ export function CartView({
             selectedItems.length === 0 && styles.checkoutButtonDisabled
           ]}
           disabled={selectedItems.length === 0}
+          onPress={onCheckout}
         >
           <Text style={styles.checkoutButtonText}>
             Mua hàng ({selectedItems.length})
@@ -278,7 +281,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 180,
+    paddingBottom: 200,
   },
   cartItem: {
     backgroundColor: '#fff',
@@ -347,14 +350,19 @@ const styles = StyleSheet.create({
   },
   checkoutBar: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 80,
     left: 0,
     right: 0,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   checkoutTop: {
     flexDirection: 'row',

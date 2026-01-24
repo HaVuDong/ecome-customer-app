@@ -11,12 +11,13 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange, cartCount }: BottomNavProps) {
   const insets = useSafeAreaInsets();
-  // Tự động điều chỉnh padding dựa trên safe area của điện thoại
-  const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
+  // Use safe area inset for bottom if available
+  const bottomPadding = Math.max(insets.bottom, 0);
   
   const tabs = [
     { id: 'home', label: 'Trang Chủ', icon: 'home-outline', activeIcon: 'home' },
     { id: 'categories', label: 'Danh Mục', icon: 'grid-outline', activeIcon: 'grid' },
+    { id: 'ai', label: 'Trợ Lý', icon: 'chatbubble-ellipses-outline', activeIcon: 'chatbubbles' },
     { id: 'cart', label: 'Giỏ Hàng', icon: 'cart-outline', activeIcon: 'cart' },
     { id: 'profile', label: 'Tôi', icon: 'person-outline', activeIcon: 'person' },
   ];

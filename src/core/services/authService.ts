@@ -66,6 +66,22 @@ class AuthService {
       console.error('Logout API error:', error);
     }
   }
+
+  // Forgot password flow
+  async requestOtp(phone: string) {
+    const response = await apiClient.post('/auth/forgot/request-otp', { phone });
+    return response.data;
+  }
+
+  async verifyOtp(phone: string, otp: string) {
+    const response = await apiClient.post('/auth/forgot/verify-otp', { phone, otp });
+    return response.data;
+  }
+
+  async resetPassword(resetToken: string, password: string) {
+    const response = await apiClient.post('/auth/forgot/reset', { resetToken, password });
+    return response.data;
+  }
 }
 
 export default new AuthService();

@@ -18,9 +18,10 @@ import { COLORS } from '../../../shared/constants/theme';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
+  onNavigateToForgot?: () => void;
 }
 
-export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
+export function LoginScreen({ onNavigateToRegister, onNavigateToForgot }: LoginScreenProps) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -119,6 +120,12 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                 <Text style={styles.registerLink}>Đăng ký ngay</Text>
               </TouchableOpacity>
             </View>
+
+            <View style={{ alignItems: 'center', marginTop: 12 }}>
+              <TouchableOpacity onPress={() => onNavigateToForgot && onNavigateToForgot()}>
+                <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -212,5 +219,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  forgotText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: 8,
   },
 });

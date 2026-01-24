@@ -189,7 +189,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     note?: string;
   }) => {
     try {
-      const response = await cartService.checkout(shippingInfo);
+      // Lấy IDs của các items đã chọn
+      const selectedItemIds = cartItems
+        .filter(item => item.selected)
+        .map(item => item.id);
+      
+      if (selectedItemIds.length === 0) {
+        throw new Error('Vui lòng chọn sản phẩm để đặt hàng');
+      }
+
+      const response = await cartService.checkout({
+        cartItemIds: selectedItemIds,
+        ...shippingInfo,
+      });
+      
       if (response.success) {
         await loadCart(); // Reload cart after checkout
         return response.data;

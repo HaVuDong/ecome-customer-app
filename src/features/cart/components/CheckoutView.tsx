@@ -92,6 +92,36 @@ export function CheckoutView({ onBack, onSuccess }: CheckoutViewProps) {
         const firstOrder = Array.isArray(orders) ? orders[0] : orders;
         setQrOrderId(firstOrder.id);
         setShowQrPayment(true);
+      } else if (paymentMethod === 'VNPAY') {
+        // VNPay flow: open payment url then poll order status
+        try {
+          const firstOrder = Array.isArray(orders) ? orders[0] : orders;
+          const res = await (await import('../../../core/services/paymentService')).createVnPayPayment(firstOrder.id);
+          const paymentUrl = res.payment_url;
+          if (!paymentUrl) throw new Error('Không tạo được URL thanh toán');
+          // Open system browser
+          const { Linking } = await import('react-native');
+          Linking.openURL(paymentUrl);
+
+          // Poll order status every 3s up to 2 minutes
+          const start = Date.now();
+          const poll = async () => {
+            const o = await (await import('../../../core/services/orderService')).default.getOrderById(firstOrder.id);
+            const status = o.data?.paymentStatus;
+            if (status === 'PAID') {
+              Alert.alert('Thanh toán thành công', 'Cảm ơn bạn đã thanh toán', [{ text: 'OK', onPress: () => onSuccess?.(orders) }]);
+              return;
+            }
+            if (status === 'FAILED' || Date.now() - start > 120000) {
+              Alert.alert('Thanh toán thất bại', 'Thanh toán không thành công hoặc hết thời gian');
+              return;
+            }
+            setTimeout(poll, 3000);
+          };
+          setTimeout(poll, 3000);
+        } catch (e: any) {
+          Alert.alert('Lỗi', e.message || 'Không thể tạo thanh toán VNPay');
+        }
       } else {
         // COD - Hiển thị thông báo thành công
         Alert.alert(
@@ -132,6 +162,7 @@ export function CheckoutView({ onBack, onSuccess }: CheckoutViewProps) {
   const paymentMethods = [
     { id: 'COD', label: 'Thanh toán khi nhận hàng', icon: 'cash-outline' },
     { id: 'QR_TRANSFER', label: 'Chuyển khoản QR (MB Bank)', icon: 'qr-code-outline' },
+    { id: 'VNPAY', label: 'Thanh toán VNPay (Sandbox)', icon: 'card-outline' },
   ];
 
   if (isLoading) {

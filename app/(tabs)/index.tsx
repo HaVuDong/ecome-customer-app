@@ -1,22 +1,31 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable import/no-duplicates */
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, Text, StatusBar, SafeAreaView, RefreshControl, ActivityIndicator, Modal } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, StatusBar, RefreshControl, ActivityIndicator, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Product } from '@/src/shared/types';
-import { products as mockProducts, categories as mockCategories, banners, vouchers, flashSaleProducts, liveStreams } from '@/src/core/data/mockData';
 import { EnhancedHeader, BottomNav } from '@/src/shared/components/layout';
 import { Banner, FlashSale, VoucherSection, LiveSection, DailyCheckin } from '@/src/features/home';
+import { AiChatView } from '@/src/features/aiChat/components/AiChatView';
+
+
 import { ProductGrid, ProductDetail } from '@/src/features/product';
 import { CategoryGrid, CategoriesView } from '@/src/features/category';
 import { SearchModal } from '@/src/features/search';
-import { CartView } from '@/src/features/cart';
+import { CartView, CheckoutView } from '@/src/features/cart';
 import { ProfileView } from '@/src/features/profile';
 import { AppProvider, useApp } from '@/src/shared/contexts';
-import { CartProvider, useCart } from '@/src/shared/contexts';
+import { useCart } from '@/src/shared/contexts';
 import productService, { ProductResponse } from '@/src/core/services/productService';
 import categoryService, { CategoryResponse } from '@/src/core/services/categoryService';
 import { RecommendationSection } from '@/src/features/home';
 import { ChatView } from '@/src/features/chat/components/ChatView';
+
+// Placeholder empty data (mockData removed per request)
+const banners: any[] = [];
+const vouchers: any[] = [];
+const flashSaleProducts: any[] = [];
+const liveStreams: any[] = [];
 
 // Chuyển đổi từ API response sang Product type
 const mapApiProductToProduct = (apiProduct: ProductResponse): Product => ({
@@ -73,8 +82,8 @@ function AppContent() {
   } = useCart();
 
   // State cho API data
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [categories, setCategories] = useState(mockCategories);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState([]);
   const [topProducts, setTopProducts] = useState<Product[]>([]);
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,6 +100,9 @@ function AppContent() {
     productImage: string;
     productPrice: number;
   } | null>(null);
+
+  // State cho Checkout
+  const [showCheckout, setShowCheckout] = useState(false);
 
   // Load data từ API
   const loadData = useCallback(async (silent = false) => {
@@ -109,7 +121,8 @@ function AppContent() {
         setProducts(productsRes.value.content.map(mapApiProductToProduct));
         setUseRealApi(true);
       } else {
-        setProducts(mockProducts);
+        // No products returned from API and no local mock data; show empty state
+        setProducts([]);
         setUseRealApi(false);
       }
 
@@ -130,9 +143,9 @@ function AppContent() {
         setNewestProducts(newestRes.value.map(mapApiProductToProduct));
       }
     } catch (error) {
-      console.log('Using mock data due to API error:', error);
-      setProducts(mockProducts);
-      setCategories(mockCategories);
+      console.log('API error, showing offline view:', error);
+      setProducts([]);
+      setCategories([]);
       setUseRealApi(false);
     } finally {
       setIsLoading(false);
@@ -254,6 +267,7 @@ function AppContent() {
               onSearchClick={() => setShowSearch(true)}
               onCartClick={() => setActiveTab('cart')}
               onQRClick={() => {}}
+              onAiClick={() => setActiveTab('ai')}
             />
             {isLoading ? (
               <View style={styles.loadingContainer}>
@@ -324,6 +338,7 @@ function AppContent() {
               onSearchClick={() => setShowSearch(true)}
               onCartClick={() => setActiveTab('cart')}
               onQRClick={() => {}}
+              onAiClick={() => setActiveTab('ai')}
             />
             <CategoriesView
               categories={categories}
@@ -345,12 +360,35 @@ function AppContent() {
               onToggleSelect={toggleItemSelection}
               onToggleSelectAll={handleToggleSelectAll}
               allSelected={allSelected}
+              onCheckout={() => setShowCheckout(true)}
             />
           </>
         )}
 
         {activeTab === 'profile' && (
           <ProfileView />
+        )}
+
+        {activeTab === 'ai' && (
+          <>
+            <EnhancedHeader
+              cartCount={totalCartCount}
+              notificationCount={3}
+              onSearchClick={() => setShowSearch(true)}
+              onCartClick={() => setActiveTab('cart')}
+              onQRClick={() => {}}
+              onAiClick={() => setActiveTab('ai')}
+            />
+            <AiChatView
+              onAddToCart={(product) => handleAddToCart(product, 1)}
+              onBuyNow={(product) => {
+                handleAddToCart(product, 1);
+                setShowCheckout(true);
+                setSelectedProduct(product);
+                setActiveTab('cart');
+              }}
+            />
+          </>
         )}
 
         {selectedProduct && (
@@ -381,6 +419,23 @@ function AppContent() {
           </Modal>
         )}
 
+        {/* Checkout Modal */}
+        {showCheckout && (
+          <Modal
+            visible={showCheckout}
+            animationType="slide"
+            onRequestClose={() => setShowCheckout(false)}
+          >
+            <CheckoutView
+              onBack={() => setShowCheckout(false)}
+              onSuccess={(orders) => {
+                setShowCheckout(false);
+                setActiveTab('home');
+              }}
+            />
+          </Modal>
+        )}
+
         {showSearch && (
           <SearchModal
             products={products}
@@ -403,9 +458,7 @@ function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <CartProvider>
-        <AppContent />
-      </CartProvider>
+      <AppContent />
     </AppProvider>
   );
 }

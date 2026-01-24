@@ -17,6 +17,7 @@ export function EnhancedHeader({
   onSearchClick,
   onCartClick,
   onQRClick,
+  onAiClick = () => {},
 }: EnhancedHeaderProps) {
   return (
     <View style={styles.header}>

@@ -7,6 +7,8 @@ import {
   StyleSheet,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Product } from '@/src/shared/types';
 
@@ -20,33 +22,123 @@ export function AiChatView({ onAddToCart, onBuyNow }: AiChatViewProps) {
     { id: '1', from: 'ai', text: 'Xin chào! Tôi là trợ lý mua sắm. Tôi có thể gợi ý sản phẩm, thêm giỏ hàng hoặc thanh toán giúp bạn.' },
   ]);
   const [input, setInput] = useState('');
+  const [aiOnline, setAiOnline] = useState<boolean | null>(null);
 
-  const sendMessage = () => {
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const aiService = await import('@/src/core/services/aiService');
+        const ok = await aiService.default.isAvailable();
+        if (mounted) setAiOnline(ok);
+      } catch (err) {
+        if (mounted) setAiOnline(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const sendMessage = async () => {
     if (!input.trim()) return;
-    const userMsg = { id: Date.now().toString(), from: 'user', text: input };
+    const text = input.trim();
+    const userMsg = { id: Date.now().toString(), from: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
 
-    // Simple demo response with a suggested product card
-    setTimeout(() => {
-      const suggested: Product = {
-        id: 'ai-suggest-1',
-        name: 'Tai nghe không dây AI',
-        price: 499000,
-        originalPrice: undefined,
-        image: 'https://via.placeholder.com/200',
-        rating: 4.6,
-        sold: 120,
-        discount: 0,
-        category: 'Điện tử',
-        description: 'Tai nghe không dây chất lượng cao do AI gợi ý.',
-        stock: 10,
-        images: [],
-        shop: { name: 'Shop AI', rating: 4.9, products: 10, responseRate: 99, responseTime: '1 phút', followers: 200 },
-        seller: undefined,
-      };
-      setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: 'Mình gợi ý sản phẩm này:', product: suggested }]);
-    }, 700);
+    try {
+      const aiService = await import('@/src/core/services/aiService');
+      const resp = await aiService.default.chatWithAi(text);
+      const assistantText = resp?.assistantReply || 'Xin lỗi, AI không trả lời được.';
+      setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: assistantText }]);
+
+      // If action is present, handle ADD_TO_CART, BUY_NOW and SUGGEST_PRODUCTS
+      const action = resp?.action;
+      if (action && typeof action === 'object') {
+        const type = String(action.type || '').toUpperCase();
+        if (type === 'ADD_TO_CART') {
+          const pid = Number(action.productId);
+          const qty = Number(action.quantity || 1);
+          // Try to add to cart via global addToCart function (provided by parent)
+          if (pid && onAddToCart) {
+            // fetch product minimal info so we can display it in chat card
+            const productService = await import('@/src/core/services/productService');
+            const p = await productService.default.getProductById(pid);
+            if (p) {
+              onAddToCart({
+                id: String(p.id),
+                name: p.name,
+                price: p.price,
+                originalPrice: p.originalPrice,
+                image: p.mainImage || '',
+                rating: p.rating || 0,
+                sold: p.soldCount || 0,
+                discount: 0,
+                category: p.category?.name || '',
+                description: p.description || '',
+                stock: p.stock || 0,
+                images: [],
+                shop: { name: p.seller?.fullName || 'Seller', rating: 0, products: 0, responseRate: 0, responseTime: '', followers: 0 },
+                seller: undefined,
+              }, qty);
+              setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: `Đã thêm sản phẩm ${p.name} vào giỏ (${qty})` }]);
+            }
+          }
+        } else if (type === 'BUY_NOW') {
+          // For BUY_NOW we delegate to onBuyNow if items present
+          const items = action.items;
+          if (Array.isArray(items) && items.length > 0 && onBuyNow) {
+            // Try to buy first item (demo)
+            const first = items[0];
+            const pid = Number(first.productId);
+            const productService = await import('@/src/core/services/productService');
+            const p = await productService.default.getProductById(pid);
+            if (p) {
+              onBuyNow({
+                id: String(p.id),
+                name: p.name,
+                price: p.price,
+                originalPrice: p.originalPrice,
+                image: p.mainImage || '',
+                rating: p.rating || 0,
+                sold: p.soldCount || 0,
+                discount: 0,
+                category: p.category?.name || '',
+                description: p.description || '',
+                stock: p.stock || 0,
+                images: [],
+                shop: { name: p.seller?.fullName || 'Seller', rating: 0, products: 0, responseRate: 0, responseTime: '', followers: 0 },
+                seller: undefined,
+              });
+              setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: `Đã tạo đơn hàng cho ${p.name}` }]);
+            }
+          }
+        } else if (type === 'SUGGEST_PRODUCTS') {
+          // actionResult.products expected as array of product-like maps
+          const products = resp?.actionResult?.products || [];
+          if (products && Array.isArray(products) && products.length > 0) {
+            setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: 'Mình tìm thấy những sản phẩm phù hợp:' }]);
+            for (const prod of products) {
+              // Map AI product DTO to the local product shape used in product cards
+              const card = {
+                id: String(prod.id),
+                name: prod.name || prod.title || 'Sản phẩm',
+                price: prod.price || prod.priceVnd || 0,
+                originalPrice: prod.price || 0,
+                mainImage: prod.mainImage || prod.image || prod.thumbnail || '',
+                category: prod.categoryName || '',
+                description: prod.description || '',
+                stock: prod.stock || 0,
+                seller: undefined,
+              };
+              setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: '', product: card }]);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('AI chat failed', err);
+      setMessages((prev) => [...prev, { id: Date.now().toString(), from: 'ai', text: 'Lỗi khi gọi AI: ' + (err?.message || String(err)) }]);
+    }
   };
 
   const renderItem = ({ item }: { item: any }) => (
@@ -73,13 +165,19 @@ export function AiChatView({ onAddToCart, onBuyNow }: AiChatViewProps) {
   );
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Trợ lý AI</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Trợ lý AI</Text>
+          <View style={styles.statusContainer}>
+            <View style={[styles.statusDot, aiOnline ? styles.statusOnline : styles.statusOffline]} />
+            <Text style={styles.statusText}>{aiOnline ? 'Online' : 'Offline'}</Text>
+          </View>
+        </View>
         <Text style={styles.headerSubtitle}>Tư vấn sản phẩm • Thêm giỏ hàng • Thanh toán VNPAY</Text>
       </View>
 
-      <FlatList data={messages} renderItem={renderItem} keyExtractor={(m) => m.id} contentContainerStyle={styles.list} />
+      <FlatList data={messages} renderItem={renderItem} keyExtractor={(m) => m.id} contentContainerStyle={styles.list} style={styles.flatList} />
 
       <View style={styles.inputRow}>
         <TextInput
@@ -92,16 +190,23 @@ export function AiChatView({ onAddToCart, onBuyNow }: AiChatViewProps) {
           <Text style={styles.sendText}>Gửi</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', paddingBottom: 88 },
   header: { padding: 16, backgroundColor: '#f97316' },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitle: { fontSize: 18, color: '#fff', fontWeight: '700' },
   headerSubtitle: { fontSize: 12, color: '#fff', marginTop: 4 },
-  list: { padding: 12 },
+  statusContainer: { flexDirection: 'row', alignItems: 'center' },
+  statusDot: { width: 10, height: 10, borderRadius: 6, marginRight: 6 },
+  statusOnline: { backgroundColor: '#10b981' },
+  statusOffline: { backgroundColor: '#ef4444' },
+  statusText: { color: '#fff', fontSize: 12, marginLeft: 4 },
+  list: { padding: 12, paddingBottom: 160 },
+  flatList: { flex: 1 },
   message: { marginBottom: 12 },
   aiMessage: { alignSelf: 'flex-start', backgroundColor: '#f1f5f9', padding: 12, borderRadius: 8 },
   userMessage: { alignSelf: 'flex-end', backgroundColor: '#fde68a', padding: 12, borderRadius: 8 },
@@ -115,7 +220,7 @@ const styles = StyleSheet.create({
   addToCartButton: { backgroundColor: '#f97316', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
   buyNowButton: { backgroundColor: '#10b981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
   actionText: { color: '#fff', fontWeight: '700' },
-  inputRow: { flexDirection: 'row', padding: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
+  inputRow: { flexDirection: 'row', padding: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb', backgroundColor: '#fff', paddingBottom: 12, elevation: 6 },
   input: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8 },
   sendButton: { backgroundColor: '#f97316', paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center' },
   sendText: { color: '#fff', fontWeight: '700' },

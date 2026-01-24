@@ -80,7 +80,7 @@ export const confirmPayment = async (orderId: number): Promise<{ success: boolea
  */
 export const createVnPayPayment = async (orderId: number): Promise<{ payment_url: string }> => {
   // NOTE: backend endpoint is /api/payment/vnpay/create (VnPayController)
-  const response = await api.post('/api/payment/vnpay/create', { orderId });
+  const response = await api.post('payment/vnpay/create', { orderId });
   const payload = (response?.data?.data ?? response?.data) as { payment_url: string } | undefined;
   if (!payload || !payload.payment_url) {
     throw new Error(`Invalid response from VNPay create: ${JSON.stringify(response?.data)}`);
